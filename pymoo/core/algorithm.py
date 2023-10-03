@@ -97,6 +97,9 @@ class Algorithm:
 
         # the time when the algorithm has been setup for the first time
         self.start_time = None
+                     
+        # store all solutions from every generation 
+        self.archive_all = None
 
     def setup(self, problem, **kwargs):
 
@@ -134,6 +137,8 @@ class Algorithm:
         # finally call the function that can be overwritten by the actual algorithm
         self._setup(problem, **kwargs)
 
+        self.archive_all = Population()
+
         return self
 
     def run(self):
@@ -152,13 +157,16 @@ class Algorithm:
         return self._finalize()
 
     def next(self):
+        # add latest population to the archive of all solutions
+        if self.history is not None and len(self.history) > 0:
+            self.archive_all = Population.merge(self.archive_all, self.history[-1].result().pop)
 
         # get the infill solutions
         infills = self.infill()
 
         # call the advance with them after evaluation
         if infills is not None:
-            self.evaluator.eval(self.problem, infills, algorithm=self)
+            self.evaluator.eval(self.problem, infills, algorithm=self,archive=self.archive_all)
             self.advance(infills=infills)
 
         # if the algorithm does not follow the infill-advance scheme just call advance
